@@ -128,7 +128,8 @@ def make_dirname(args):
             dir_name = f'{dir_name}_detect-{args.detect_obj}'
         if args.multistage>1:
             dir_name = f'{dir_name}_stage-{args.multistage}'
-    
+
+        dir_name = f'{args.mil_mode}/{dir_name}'
     return dir_name
 
 def make_filename(args):
@@ -173,6 +174,8 @@ def make_filename(args):
             filename = f'{filename}_detect-{args.detect_obj}'
         if args.multistage>1:
             filename = f'{filename}_stage-{args.multistage}'
+        
+        filename = f'{args.mil_mode}/{filename}'
     
     return filename
 

@@ -17,14 +17,14 @@ mode_list = range(len(command_list))
 
 for mode in mode_list:
     for split in split_list:
-        command1 = ['python','train_new.py']+[split[0]]
+        command1 = ['python','train.py']+[split[0]]
         command2 = command_list[mode]
         command = command1 + command2
             
         print(command)
         subprocess.run(command)
 
-        command1 = ['python','test_new.py']+[split[0]]
+        command1 = ['python','test.py']+[split[0]]
         command2 = command_list[mode]+['--exist_ok']
         command = command1 + command2
         command = [c for c in command if c != '-r']

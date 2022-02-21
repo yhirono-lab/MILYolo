@@ -1,27 +1,39 @@
-# Multi-label classification using Multi-scale Domain-adversarial Multiple Instance Learning CNN
+# Attention-based Multiple Instance Learning with YOLO
 
-このソースコードはデータとしてWSIから切り出したパッチを保存せず，svsファイルをそのまま使用するためのマルチインスタンスCNNアルゴリズムです．
+YOLOを用いたAMILのプログラム．
+パッチ画像は保存せず，/Raw/Kurume_Dataset/svs に保存されたsvsファイルから逐次パッチ画像を作成する．
 
-## Environmental Requirement
-We confirmed that the source code was running with the following environment.
+## 実行環境
+ライブラリバージョン
+- python 3.8.10
+- numpy 1.21.2
+- opencv-python 4.5.3.56
+- openslide-python 1.1.2
+- pillow 8.3.1
+- torch 1.9.0
+- torchvision 0.10.0
 
-- python 3.6
-- numpy 1.18.1
-- opencv-python 4.2.0.32
-- pillow 6.1.0
-- pytorch 1.4.0
-- CUDA 10
-- NVIDIA Quadro RTX 5000
+使用したマシン
+- マシン noah
+- CUDA Version 11.4
+- Driver Version 470.86
 
-## Structure of directories and experimental dataset
+## OpenSlide のインストール
+OpenSlideというライブラリをマシンにインストールしないとパッチ画像の作成ができない．
+(通常であれば，入っている環境に設定してくれていると思う)
+python用のライブラリをダウンロード
+    ```
+    apt-get install python-openslide
+    apt-get install openslide-tools
+    pip3 install openslide-python
+    ```
 
-We assume the following structure of directories.
-ファイルのパスは適宜書き換えてください．
-
+## ファイル構造
+久留米データセット
 ```
 root/
-　　├ Source/
-　　└ Data/
+　　├ Raw/Kurume_Dataset/
+　　└ Dataset/Kurume_Dataset/
 ```
 
 Each directory has the following subdirectories and files.

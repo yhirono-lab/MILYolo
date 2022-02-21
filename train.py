@@ -192,62 +192,14 @@ def train(rank, world_size, opt):
     torch.backends.cudnn.benchmark=True #cudnnベンチマークモード
 
     # model読み込み
-    from model import feature_extractor, class_predictor, yolo_extractor, MILYOLO, CEInvarse, LDAMLoss, FocalLoss
-    # 各ブロック宣言
-    feature_extractor = feature_extractor(opt.model)
-    class_predictor = class_predictor(label_num, dropout=opt.dropout, detect_obj=opt.detect_obj, yolo_stage=opt.multistage)
-    
-    yolo_extractor_list = []
-    for s in range(opt.multistage):
-        yolo = yolo_extractor()
-        yolo_weight = f'./YoloWeights/depth{int(opt.depth)+s}-best.pt'
-        ckpt_data = torch.load(yolo_weight)  # load checkpoint
-        csd = ckpt_data['model'].state_dict()
-        yolo.load_state_dict(csd, strict=False)  # load
-        yolo_extractor_list.append(yolo)
-        print(colorstr('load yolo weights')+f' : {yolo_weight}') if rank==0 else None
-        
-    # model構築
-    model = MILYOLO(feature_extractor, class_predictor, yolo_extractor_list)
-    for k, v in model.named_parameters():
-        v.requires_grad = True  # train all layers
-        if 'yolo_extractor' in k:
-            # print(f'freezing {k}')
-            v.requires_grad = False
-    print(colorstr('yolo_extractors are freezed')) if rank==0 else None
-    # print(colorstr('model:\n'), model) if rank==0 else None
-
-    # 途中で学習が止まってしまったとき用
-    if opt.restart:
-        model_params_dir = f'{save_dir}/model_params'
-        if os.path.exists(model_params_dir) and os.listdir(model_params_dir):
-            model_params_list = sorted(os.listdir(model_params_dir))
-            model_params_file = f'{model_params_dir}/{model_params_list[-1]}'
-            model.load_state_dict(torch.load(model_params_file))
-            restart_epoch = len(model_params_list)
-            print(colorstr('restart') + f': load {model_params_list[-1]}')
-        else:
-            restart_epoch = 0
+    from make_model import train_model_yolo, train_model_amil
+    if opt.mil_mode == 'yolo':
+        model, optimizer = train_model_yolo(opt, label_num, rank, save_dir)
+    if opt.mil_mode == 'amil':
+        model, optimizer = train_model_amil(opt, label_num, rank, save_dir)
     model = model.to(rank)
     print(colorstr('model created')) if rank==0 else None
-
-    # Optimizerの設定
-    g0, g1, g2 = [], [], []  # optimizer parameter groups
-    for v in model.modules():
-        if hasattr(v, 'bias') and isinstance(v.bias, nn.Parameter):  # bias
-            g2.append(v.bias)
-        if isinstance(v, nn.BatchNorm2d):  # weight (no decay)
-            g0.append(v.weight)
-        elif hasattr(v, 'weight') and isinstance(v.weight, nn.Parameter):  # weight (with decay)
-            g1.append(v.weight)
-
-    optimizer = SGD(g0, lr=opt.lr, momentum=opt.momentum, nesterov=True)
-    optimizer.add_param_group({'params': g1, 'weight_decay': opt.weight_decay})  # add g1 with weight_decay
-    optimizer.add_param_group({'params': g2})  # add g2 (biases)
-    print(f"{colorstr('optimizer:')} {type(optimizer).__name__} with parameter groups "
-                f"{len(g0)} weight, {len(g1)} weight (no decay), {len(g2)} bias") if rank==0 else None
-    del g0, g1, g2
-
+    
     lf = one_cycle(1, opt.lr*20, epochs)  # cosine 1->hyp['lrf']
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)  # plot_lr_scheduler(optimizer, scheduler, epochs)
      
@@ -270,17 +222,13 @@ def train(rank, world_size, opt):
                 epochs += ckpt_data['epoch']  # finetune additional epochs
 
             del ckpt_data
-    
-    # DP mode
-    # if cuda and RANK == -1 and torch.cuda.device_count() > 1:
-    #     model = torch.nn.DataParallel(model)
+
     
     if len(opt.device.split(',')) > 1:
         # # SyncBatchNorm
         process_group = torch.distributed.new_group([i for i in range(world_size)])
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group)
         # # DDP mode
-        # model = DDP(model, device_ids=[rank], output_device=rank)
         model = DDP(model, device_ids=[rank])
     
 
@@ -290,6 +238,7 @@ def train(rank, world_size, opt):
     scaler = amp.GradScaler(enabled=cuda)
     
     # 損失関数
+    from model_yolo import CEInvarse, LDAMLoss, FocalLoss
     loss_fn = None
     if opt.loss_mode == 'normal':
         loss_fn = nn.CrossEntropyLoss().to(rank)
@@ -422,6 +371,7 @@ def parse_opt(known=False):
     parser.add_argument('train', help='choose train data split')
     parser.add_argument('--depth', default=None, help='choose depth')
     parser.add_argument('--leaf', default=None, help='choose leafs')
+    parser.add_argument('--mil_mode', default='yolo', choices=['amil', 'yolo'], help='flag to use normal AMIL')
     parser.add_argument('--yolo_ver', default=None, help='choose weight version')
     parser.add_argument('--data', default='add', choices=['', 'add'])
     parser.add_argument('--mag', default='40x', choices=['5x', '10x', '20x', '40x'], help='choose mag')
