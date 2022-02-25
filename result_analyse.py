@@ -54,71 +54,6 @@ def load_testresult(save_dir):
 
     return result_data
 
-# # スライド単位の事後確率とラベルのリストを返す
-# def load_slide_prob_label(opt):
-#     dir_name = opt.dir_name
-#     mag = opt.mag
-#     lr = str(opt.lr)
-    
-#     pred_corpus = {}
-#     label_corpus = {}
-#     slide_id_list = []
-
-#     result_fn_list = os.listdir(f'./test_result/{dir_name}')
-#     result_fn_list = [result_fn for result_fn in result_fn_list if mag in result_fn and lr in result_fn and 'epoch' in result_fn]
-#     print('load_bagresult:',result_fn_list)
-    
-#     split_num_list = []
-#     for result_fn in result_fn_list:
-#         csv_file = f'./test_result/{dir_name}/{result_fn}'
-#         split_num = result_fn.split('-')[-2][0]
-#         split_num_list.append(split_num)
-#         with open(csv_file, 'r') as f:
-#             reader = csv.reader(f)
-#             for row in reader:
-#                 if(len(row)==6 or len(row)==9):
-#                     slide_id = row[1]
-#                     if len(row)==6:
-#                         prob_list = [float(row[4]), float(row[5])]
-#                     elif len(row)==9:
-#                         prob_list = [float(row[4]), float(row[5]), float(row[6]), float(row[7]), float(row[8])]
-                    
-#                     if(slide_id not in pred_corpus):
-#                         pred_corpus[slide_id] = []
-#                         label_corpus[slide_id] = int(row[2]) #正解ラベル
-
-#                     pred_corpus[slide_id].append(prob_list)
-#                     if((slide_id, split_num) not in slide_id_list):
-#                         slide_id_list.append((slide_id, split_num))
-
-#     # slide単位の事後確率計算
-#     slide_prob = {f'split-{split_num}':[] for split_num in split_num_list}
-#     slide_prob['all'] = []
-#     slide_label_list = {f'split-{split_num}':[] for split_num in split_num_list}
-#     slide_label_list['all'] = []
-
-#     for slide_id, split_num in slide_id_list:
-#         prob_list = pred_corpus[slide_id]
-#         bag_num = len(prob_list) # Bagの数
-
-#         total_prob_list = [0.0 for i in prob_list[0]]
-#         for prob in prob_list:
-#             total_prob_list = total_prob_list + np.log(prob)
-#         total_prob_list = np.exp(total_prob_list / bag_num) 
-        
-#         label = [label_corpus[slide_id], np.argmax(total_prob_list)]
-
-#         slide_prob[f'split-{split_num}'].append(list(total_prob_list))
-#         slide_prob['all'].append(list(total_prob_list))
-#         slide_label_list[f'split-{split_num}'].append(label)
-#         slide_label_list['all'].append(label)
-    
-#     for key in slide_prob:
-#         slide_prob[key] = np.array(slide_prob[key])
-#         slide_label_list[key] = np.array(slide_label_list[key])
-
-#     return slide_id_list, slide_prob, slide_label_list
-
 def cal_log_ave(log_list, max_epoch):
     ave_log_data = np.zeros((max_epoch, 4))    
     for epoch in range(max_epoch):
@@ -251,29 +186,6 @@ def save_test_cm(opt, test_result, exp, save_dir):
     if exp != 'total':
         shutil.copyfile(f'{save_dir}/test_analytics_{exp}.csv', opt.result/'graphs'/f'test_analytics_{exp}.csv')
 
-    # f_writer.writerow([])
-
-    # cm = confusion_matrix(y_true=slide_label[:,0], y_pred=slide_label[:,1], labels=np.unique(slide_label[:,0]).tolist())
-    # print(f'{key}\'s slide result\n',cm)
-    
-    # f_writer.writerow(['Slide']+[f'pred:{i}' for i in range(len(cm))])
-    # total = 0
-    # correct = 0
-    # recall_list = []
-    # for i in range(len(cm)):
-    #     row_total = 0
-    #     for j in range(len(cm)):
-    #         total += cm[i][j]
-    #         row_total += cm[i][j]
-    #     recall_list.append(cm[i][i]/row_total)
-    #     correct += cm[i][i]
-    #     f_writer.writerow([f'true:{i}']+cm[i].tolist())
-    # acc = correct/total
-    # f_writer.writerow(['recall']+recall_list)
-    # f_writer.writerow(['total',total])
-    # f_writer.writerow(['accuracy',acc])
-    # f.close()
-
     print(classification_report(y_true=test_result[:,1], y_pred=test_result[:,2]))
 
 def make_histgram(opt, total_data, save_dir):
@@ -383,7 +295,6 @@ def parse_args(known=False):
     parser.add_argument('--depth', default=None, help='choose depth')
     parser.add_argument('--leaf', default=None, help='choose leafs')
     parser.add_argument('--data', default='add', choices=['', 'add'])
-    parser.add_argument('--mil_mode', default='yolo', choices=['amil', 'yolo'], help='flag to use normal AMIL')
     parser.add_argument('--yolo_ver', default=None, help='choose weight version')
     parser.add_argument('--model', default='vgg16', choices=['vgg16', 'vgg11'])
     parser.add_argument('--dropout', action='store_true')

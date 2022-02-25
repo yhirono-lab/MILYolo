@@ -20,7 +20,7 @@ from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 import utils
-import dataloader_svs_hirono
+import dataloader_svs
 from yolo import non_max_suppression
 from utils import scale_coords, colorstr, select_device
 
@@ -90,9 +90,6 @@ def model_test(rank, opt, model, test_loader, output_file):
             f_writer.writerow(slideid_tlabel_plabel)
             pos_x = pos_list[bag_num,:,0].tolist()
             pos_y = pos_list[bag_num,:,1].tolist()
-            # for pos in pos_list:
-            #     pos_x.append(int(pos[0]))
-            #     pos_y.append(int(pos[1]))
             f_writer.writerow(['pos_x']+pos_x) # 座標書き込み
             f_writer.writerow(['pos_y']+pos_y) # 座標書き込み
             attention_weights = A.cpu().squeeze(0) # 1次元目削除[1,100] --> [100]
@@ -137,11 +134,8 @@ def test(rank, world_size, opt):
         exit()
 
     # model読み込み
-    from make_model import test_model_yolo, test_model_amil
-    if opt.mil_mode == 'yolo':
-        model = test_model_yolo(opt, label_num, save_dir)
-    if opt.mil_mode == 'amil':
-        model = ttest_model_amil(opt, label_num, save_dir)
+    from make_model import test_model_yolo
+    model = test_model_yolo(opt, label_num, save_dir)
     model = model.to(rank)
     
     # # DDP mode
@@ -155,7 +149,7 @@ def test(rank, world_size, opt):
         torchvision.transforms.ToTensor()
     ])
 
-    data_test = dataloader_svs_hirono.Dataset_svs(
+    data_test = dataloader_svs.Dataset_svs(
         train=False,
         transform=transform,
         dataset=test_dataset,
@@ -186,7 +180,6 @@ def parse_opt(known=False):
     parser.add_argument('-n', '--number', default='', help='choose training number')
     parser.add_argument('--depth', default='1', help='choose depth')
     parser.add_argument('--leaf', default='01', help='choose leafs')
-    parser.add_argument('--mil_mode', default='yolo', choices=['amil', 'yolo'], help='flag to use normal AMIL')
     parser.add_argument('--yolo_ver', default=None, help='choose weight version')
     parser.add_argument('--data', default='add', choices=['', 'add'])
     parser.add_argument('--mag', default='40x', choices=['5x', '10x', '20x', '40x'], help='choose mag')
@@ -195,7 +188,6 @@ def parse_opt(known=False):
     parser.add_argument('--multistage', default=1, type=int)
     parser.add_argument('--detect_obj', default=None, type=int)
     parser.add_argument('--name', default='Simple', choices=['Full', 'Simple'], help='choose name_mode')
-    parser.add_argument('--num_gpu', default=1, type=int, help='input gpu num')
     parser.add_argument('-c', '--classify_mode', default='new_tree', choices=['leaf', 'subtype', 'new_tree'], help='leaf->based on tree, simple->based on subtype')
     parser.add_argument('-l', '--loss_mode', default='ICE', choices=['CE','ICE','LDAM','focal','focal-weight'], help='select loss type')
     parser.add_argument('--lr', default=0.0005, type=float)
@@ -256,7 +248,7 @@ def main(opt):
     
     # DDP mode
     device = select_device(opt.device)
-    num_gpu = len(opt.device.split(','))
+     = len(opt.device.split(','))
     
     # resultファイルの作成
     if opt.save_dir.exists():
@@ -271,7 +263,7 @@ def main(opt):
         f.close()
 
         # Test
-        mp.spawn(test, args=(num_gpu, opt), nprocs=num_gpu, join=True)
+        mp.spawn(test, args=(, opt), nprocs=, join=True)
     else:
         print(colorstr(opt.save_dir)+' is not exists')
         exit()

@@ -57,7 +57,6 @@ class Dataset_svs(torch.utils.data.Dataset):
         return self.data_num
 
     def __getitem__(self, idx):
-
         pos_list = self.bag_list[idx][0]
         patch_len = len(pos_list) # パッチ数
 

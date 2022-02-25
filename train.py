@@ -26,7 +26,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 import utils
 from utils import colorstr, increment_path, select_device, one_cycle
-import dataloader_svs_hirono
+import dataloader_svs
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -84,26 +84,6 @@ def model_train(rank, model, train_loader, loss_fn, optimizer, scaler, epoch):
         # Optimize
         scaler.step(optimizer)  # optimizer.step
         scaler.update()
-
-        # input_tensor = input_tensor.to(rank, non_blocking=True).squeeze(0)
-        # class_label = class_label.to(rank, non_blocking=True).squeeze(0)
-        
-        # class_prob, class_hat, A, _ = model(input_tensor)
-        
-        # # 各loss計算
-        # class_loss = loss_fn(class_prob, class_label)
-        # # print(class_loss,class_prob,class_label)
-        # train_class_loss += class_loss.item()
-        # correct_num += eval_ans(class_hat, class_label)
-
-        # # Backward
-        # scaler.scale(class_loss).backward()
-        
-        # # Optimize
-        # scaler.step(optimizer)  # optimizer.step
-        # scaler.update()
-        # optimizer.zero_grad()
-        # # optimizer.step() #パラメータ更新
         
         # Log
         accuracy = correct_num / total_num
@@ -192,17 +172,14 @@ def train(rank, world_size, opt):
     torch.backends.cudnn.benchmark=True #cudnnベンチマークモード
 
     # model読み込み
-    from make_model import train_model_yolo, train_model_amil
-    if opt.mil_mode == 'yolo':
-        model, optimizer = train_model_yolo(opt, label_num, rank, save_dir)
-    if opt.mil_mode == 'amil':
-        model, optimizer = train_model_amil(opt, label_num, rank, save_dir)
+    from make_model import train_model_yolo
+    model, optimizer = train_model_yolo(opt, label_num, rank, save_dir)
     model = model.to(rank)
     print(colorstr('model created')) if rank==0 else None
     
     lf = one_cycle(1, opt.lr*20, epochs)  # cosine 1->hyp['lrf']
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)  # plot_lr_scheduler(optimizer, scheduler, epochs)
-     
+    
     # Resume
     start_epoch, best_fitness = 0, 100.0
     if opt.restart:
@@ -240,7 +217,7 @@ def train(rank, world_size, opt):
     # 損失関数
     from model_yolo import CEInvarse, LDAMLoss, FocalLoss
     loss_fn = None
-    if opt.loss_mode == 'normal':
+    if opt.loss_mode == 'CE':
         loss_fn = nn.CrossEntropyLoss().to(rank)
     if opt.loss_mode == 'ICE':
         loss_fn = CEInvarse(rank, label_count).to(rank)
@@ -269,7 +246,7 @@ def train(rank, world_size, opt):
         valid_loss = 0.0
         valid_acc = 0.0
         
-        data_train = dataloader_svs_hirono.Dataset_svs(
+        data_train = dataloader_svs.Dataset_svs(
             train=True,
             transform=transform,
             dataset=train_dataset,
@@ -303,7 +280,7 @@ def train(rank, world_size, opt):
         lr = [x['lr'] for x in optimizer.param_groups]  # for loggers
         scheduler.step()
         
-        data_valid = dataloader_svs_hirono.Dataset_svs(
+        data_valid = dataloader_svs.Dataset_svs(
             train=True,
             transform=transform,
             dataset=valid_dataset,
@@ -365,13 +342,11 @@ def train(rank, world_size, opt):
     torch.cuda.empty_cache()
 
 
-
 def parse_opt(known=False):    
     parser = argparse.ArgumentParser(description='This program is MIL using Kurume univ. data')
     parser.add_argument('train', help='choose train data split')
     parser.add_argument('--depth', default=None, help='choose depth')
     parser.add_argument('--leaf', default=None, help='choose leafs')
-    parser.add_argument('--mil_mode', default='yolo', choices=['amil', 'yolo'], help='flag to use normal AMIL')
     parser.add_argument('--yolo_ver', default=None, help='choose weight version')
     parser.add_argument('--data', default='add', choices=['', 'add'])
     parser.add_argument('--mag', default='40x', choices=['5x', '10x', '20x', '40x'], help='choose mag')
@@ -382,7 +357,6 @@ def parse_opt(known=False):
     parser.add_argument('--epoch', default=10, type=int)
     parser.add_argument('--batch_size', default=3, type=int)
     parser.add_argument('--name', default='Simple', choices=['Full', 'Simple'], help='choose name_mode')
-    parser.add_argument('--num_gpu', default=1, type=int, help='input gpu num')
     parser.add_argument('-c', '--classify_mode', default='new_tree', choices=['leaf', 'subtype', 'new_tree'], help='leaf->based on tree, simple->based on subtype')
     parser.add_argument('-l', '--loss_mode', default='ICE', choices=['CE','ICE','LDAM','focal','focal-weight'], help='select loss type')
     parser.add_argument('--lr', default=0.0005, type=float)
@@ -399,8 +373,8 @@ def parse_opt(known=False):
     
     opt.valid = split_dict[opt.train]
     
-    # if opt.data == 'add':
-    #     opt.reduce = True
+    if opt.data == 'add':
+        opt.reduce = True
 
     if opt.classify_mode != 'subtype':
         if opt.depth == None:

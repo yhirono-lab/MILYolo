@@ -36,7 +36,10 @@ def train_model_yolo(opt, label_num, rank, save_dir):
     yolo_extractor_list = []
     for s in range(opt.multistage):
         yolo = yolo_extractor()
-        yolo_weight = f'./YoloWeights/depth{int(opt.depth)+s}-best.pt'
+        if opt.multistage == 1:
+            yolo_weight = f'./YoloWeights/depth{int(opt.depth)}-ver{int(opt.yolo_ver)}.pt'
+        else:
+            yolo_weight = f'./YoloWeights/depth{int(opt.depth)+s}-best.pt'
         ckpt_data = torch.load(yolo_weight)  # load checkpoint
         csd = ckpt_data['model'].state_dict()
         yolo.load_state_dict(csd, strict=False)  # load

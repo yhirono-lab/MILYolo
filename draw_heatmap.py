@@ -411,7 +411,6 @@ def parse_args(known=False):
     parser = argparse.ArgumentParser(description='This program is MIL using Kurume univ. data')
     parser.add_argument('--depth', default=None, help='choose depth')
     parser.add_argument('--leaf', default=None, help='choose leafs')
-    parser.add_argument('--mil_mode', default='yolo', choices=['amil', 'yolo'], help='flag to use normal AMIL')
     parser.add_argument('--yolo_ver', default=None, help='choose weight version')
     parser.add_argument('--data', default='add', choices=['', 'add'])
     parser.add_argument('--model', default='vgg16', choices=['vgg16', 'vgg11'])
