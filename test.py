@@ -114,7 +114,7 @@ def test(rank, world_size, opt):
     # 訓練用と検証用に症例を分割
     colorstr('data load:')
     import dataset_kurume as ds
-    if opt.classify_mode == 'leaf' or opt.classify_mode == 'new_tree':
+    if opt.classify_mode == 'normal_tree' or opt.classify_mode == 'kurume_tree':
         _, test_dataset, label_num = ds.load_leaf(opt, rank)
     elif opt.classify_mode == 'subtype':
         _, test_dataset, label_num = ds.load_svs(opt, rank)
@@ -181,14 +181,14 @@ def parse_opt(known=False):
     parser.add_argument('--depth', default='1', help='choose depth')
     parser.add_argument('--leaf', default='01', help='choose leafs')
     parser.add_argument('--yolo_ver', default=None, help='choose weight version')
-    parser.add_argument('--data', default='add', choices=['', 'add'])
+    parser.add_argument('--data', default='2nd', choices=['1st', '2nd', '3rd'])
     parser.add_argument('--mag', default='40x', choices=['5x', '10x', '20x', '40x'], help='choose mag')
     parser.add_argument('--model', default='vgg16', choices=['vgg16', 'vgg11'])
     parser.add_argument('--dropout', action='store_true')
     parser.add_argument('--multistage', default=1, type=int)
     parser.add_argument('--detect_obj', default=None, type=int)
     parser.add_argument('--name', default='Simple', choices=['Full', 'Simple'], help='choose name_mode')
-    parser.add_argument('-c', '--classify_mode', default='new_tree', choices=['leaf', 'subtype', 'new_tree'], help='leaf->based on tree, simple->based on subtype')
+    parser.add_argument('-c', '--classify_mode', default='kurume_tree', choices=['normal_tree', 'kurume_tree', 'subtype'], help='leaf->based on tree, simple->based on subtype')
     parser.add_argument('-l', '--loss_mode', default='ICE', choices=['CE','ICE','LDAM','focal','focal-weight'], help='select loss type')
     parser.add_argument('--lr', default=0.0005, type=float)
     parser.add_argument('-C', '--constant', default=0)
@@ -204,8 +204,8 @@ def parse_opt(known=False):
     
     opt.valid = split_dict[opt.train]
     
-    # if opt.data == 'add':
-    #     opt.reduce = True
+    if opt.data == '2nd' or opt.data == '3rd':
+        opt.reduce = True
 
     if opt.classify_mode != 'subtype':
         if opt.depth == None:
@@ -248,7 +248,7 @@ def main(opt):
     
     # DDP mode
     device = select_device(opt.device)
-     = len(opt.device.split(','))
+    num_gpu = len(opt.device.split(','))
     
     # resultファイルの作成
     if opt.save_dir.exists():
@@ -263,7 +263,7 @@ def main(opt):
         f.close()
 
         # Test
-        mp.spawn(test, args=(, opt), nprocs=, join=True)
+        mp.spawn(test, args=(num_gpu, opt), nprocs=num_gpu, join=True)
     else:
         print(colorstr(opt.save_dir)+' is not exists')
         exit()

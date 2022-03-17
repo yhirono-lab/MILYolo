@@ -2,10 +2,10 @@ import subprocess
 import sys
 
 command_list = [
-    ['--depth','1','--leaf','01','--lr', '0.0005', '--dropout', '--data', 'add', '--reduce','--multistage','3','--detect_obj','50'],
-    ['--depth','2','--leaf','01','--lr', '0.0005', '--dropout', '--data', 'add', '--reduce','--multistage','2','--detect_obj','50'],
-    ['--depth','1','--leaf','01','--lr', '0.0005', '--dropout', '--data', 'add', '--reduce','--multistage','3','--detect_obj','20'],
-    ['--depth','2','--leaf','01','--lr', '0.0005', '--dropout', '--data', 'add', '--reduce','--multistage','2','--detect_obj','20'],
+    ['--depth','1','--leaf','01','--lr', '0.0005', '--dropout', '--data', '2nd', '--reduce','--multistage','3','--detect_obj','50'],
+    ['--depth','2','--leaf','01','--lr', '0.0005', '--dropout', '--data', '2nd', '--reduce','--multistage','2','--detect_obj','50'],
+    ['--depth','1','--leaf','01','--lr', '0.0005', '--dropout', '--data', '2nd', '--reduce','--multistage','3','--detect_obj','20'],
+    ['--depth','2','--leaf','01','--lr', '0.0005', '--dropout', '--data', '2nd', '--reduce','--multistage','2','--detect_obj','20'],
 ]
 
 split_list = [

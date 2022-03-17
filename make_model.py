@@ -103,40 +103,42 @@ def test_model_yolo(opt, label_num, best_param):
     
     return model
 
-def train_model_amil(opt, label_num, rank, save_dir):
-    # model読み込み
-    from model_mil import feature_extractor, class_predictor, MIL
-    # 各ブロック宣言
-    feature_extractor = feature_extractor(opt.model)
-    class_predictor = class_predictor(label_num)
-    # model構築
-    model = MIL(feature_extractor, class_predictor)
+# MILYOLO に通常のAMILをオプションで変更可能にしようとしたけど，結果の出力の違いでエラーが出そうだったので断念
+# モデルの構築までは動きます
+# def train_model_amil(opt, label_num, rank, save_dir):
+#     # model読み込み
+#     from model_mil import feature_extractor, class_predictor, MIL
+#     # 各ブロック宣言
+#     feature_extractor = feature_extractor(opt.model)
+#     class_predictor = class_predictor(label_num)
+#     # model構築
+#     model = MIL(feature_extractor, class_predictor)
 
-    # 途中で学習が止まってしまったとき用
-    if opt.restart:
-        model_params_dir = f'{save_dir}/model_params'
-        if os.path.exists(model_params_dir):
-            model_params_list = sorted(os.listdir(model_params_dir))
-            model_params_file = f'{model_params_dir}/{model_params_list[-1]}'
-            model.load_state_dict(torch.load(model_params_file))
-            restart_epoch = len(model_params_list)
-            print(colorstr('restart') + f': load {model_params_list[-1]}')
-        else:
-            restart_epoch = 0
+#     # 途中で学習が止まってしまったとき用
+#     if opt.restart:
+#         model_params_dir = f'{save_dir}/model_params'
+#         if os.path.exists(model_params_dir):
+#             model_params_list = sorted(os.listdir(model_params_dir))
+#             model_params_file = f'{model_params_dir}/{model_params_list[-1]}'
+#             model.load_state_dict(torch.load(model_params_file))
+#             restart_epoch = len(model_params_list)
+#             print(colorstr('restart') + f': load {model_params_list[-1]}')
+#         else:
+#             restart_epoch = 0
     
-    # Optimizerの設定
-    optimizer = optim.SGD(model.parameters(), lr=opt.lr, momentum=opt.momentum, weight_decay=0.0001)
+#     # Optimizerの設定
+#     optimizer = optim.SGD(model.parameters(), lr=opt.lr, momentum=opt.momentum, weight_decay=0.0001)
 
-    return model, optimizer
+#     return model, optimizer
 
-def test_model_amil(opt, label_num, best_param):
-    # model読み込み
-    from model_mil import feature_extractor, class_predictor, MIL
-    # 各ブロック宣言
-    feature_extractor = feature_extractor(opt.model)
-    class_predictor = class_predictor(label_num)
-    # DAMIL構築
-    model = MIL(feature_extractor, class_predictor)
-    model.load_state_dict(best_param)
+# def test_model_amil(opt, label_num, best_param):
+#     # model読み込み
+#     from model_mil import feature_extractor, class_predictor, MIL
+#     # 各ブロック宣言
+#     feature_extractor = feature_extractor(opt.model)
+#     class_predictor = class_predictor(label_num)
+#     # DAMIL構築
+#     model = MIL(feature_extractor, class_predictor)
+#     model.load_state_dict(best_param)
 
-    return model
+#     return model

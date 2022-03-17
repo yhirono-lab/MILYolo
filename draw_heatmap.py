@@ -112,7 +112,7 @@ def makedir(path):
         os.makedirs(path)
 
 def get_slideID_name():
-    file_name = '../KurumeTree/add_data/Data_SimpleName_svs.csv'
+    file_name = '../KurumeTree/dataset/3rd/Data_SimpleName_svs.csv'
     csv_data = np.loadtxt(file_name, delimiter=',', dtype='str')
     name_list = {}
 
@@ -412,14 +412,14 @@ def parse_args(known=False):
     parser.add_argument('--depth', default=None, help='choose depth')
     parser.add_argument('--leaf', default=None, help='choose leafs')
     parser.add_argument('--yolo_ver', default=None, help='choose weight version')
-    parser.add_argument('--data', default='add', choices=['', 'add'])
+    parser.add_argument('--data', default='2nd', choices=['1st', '2nd', '3rd'])
     parser.add_argument('--model', default='vgg16', choices=['vgg16', 'vgg11'])
     parser.add_argument('--dropout', action='store_true')
     parser.add_argument('--multistage', default=1, type=int)
     parser.add_argument('--detect_obj', default=None, type=int)
     parser.add_argument('--mag', default='40x', choices=['5x', '10x', '20x', '40x'], help='choose mag')
     parser.add_argument('--name', default='Simple', choices=['Full', 'Simple'], help='choose name_mode')
-    parser.add_argument('-c', '--classify_mode', default='new_tree', choices=['leaf', 'subtype', 'new_tree'], help='leaf->based on tree, simple->based on subtype')
+    parser.add_argument('-c', '--classify_mode', default='kurume_tree', choices=['normal_tree', 'kurume_tree', 'subtype'], help='leaf->based on tree, simple->based on subtype')
     parser.add_argument('-l', '--loss_mode', default='ICE', choices=['CE','ICE','LDAM','focal','focal-weight'], help='select loss type')
     parser.add_argument('--lr', default=0.00005, type=float)
     parser.add_argument('-C', '--constant', default=None)
@@ -429,8 +429,8 @@ def parse_args(known=False):
     parser.add_argument('--reduce', action='store_true')
     opt = parser.parse_args()
 
-    # if opt.data == 'add':
-    #     opt.reduce = True
+    if opt.data == '2nd' or opt.data == '3rd':
+        opt.reduce = True
 
     if opt.classify_mode != 'subtype':
         if opt.depth == None:

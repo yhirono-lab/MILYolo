@@ -1,3 +1,5 @@
+# pytorchのデータローダーとして扱えるようにするためのコード
+
 import os
 import glob
 import torch
@@ -35,8 +37,13 @@ class Dataset_svs(torch.utils.data.Dataset):
 
             # 座標ファイル読み込み
             pos = np.loadtxt(f'{DATA_PATH}/svs_info_{self.mag}/{slideID}/{slideID}.csv', delimiter=',', dtype='int')
+            
+            """
+            もしかしたらファイル名修正後はint()のエラーが出るかも
+            JMCxxxxのslideID[4:]でJMCを飛ばすようにしているので大丈夫だとは思う           
+            """
             if not self.train: # テストのときはシャッフルのシードを固定
-                np.random.seed(seed=int(slideID))
+                np.random.seed(seed=int(slideID[4:]))
             np.random.shuffle(pos) #パッチをシャッフル
             
             #最大でbag_num個のバッグを作成
@@ -63,8 +70,15 @@ class Dataset_svs(torch.utils.data.Dataset):
         b_size = 224 #パッチ画像サイズ
 
         # 症例IDを含む名前のsvsファイルを取得
+        """
+        画像ファイル名の改変後は注意．
+        s[:11]と頭文字だけで画像svsファイルを検索しているのは，
+        元のファイル名の後半部分で番号が一致するファイルがあったため．
+        """
         svs_list = os.listdir(f'{SVS_PATH}/svs')
-        svs_fn = [s for s in svs_list if self.bag_list[idx][1] in s[:11]]
+        # 画像svsファイル名変更前の検索
+        # svs_fn = [s for s in svs_list if self.bag_list[idx][1] in s[:11]]
+        svs_fn = [s for s in svs_list if self.bag_list[idx][1] in s]
         svs = openslide.OpenSlide(f'{SVS_PATH}/svs/{svs_fn[0]}')
 
         aug = self.bag_list[idx][3]
@@ -73,6 +87,7 @@ class Dataset_svs(torch.utils.data.Dataset):
         bag = torch.empty(patch_len, 3, 224, 224, dtype=torch.float)
         i = 0
         # 画像読み込み
+        """拡大率は40xでしか実験していないので，もし拡大率を変更する時はエラーに注意"""
         for pos in pos_list:
             if self.transform: # どの倍率も中心座標は同じ
                 try:

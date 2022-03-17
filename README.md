@@ -29,11 +29,27 @@ pip3 install openslide-python
 ```
 
 ## ファイル構造
-久留米データセット
+必要なデータセット
 ```
+画像データ
 root/
-　　├ Raw/Kurume_Dataset/
-　　└ Dataset/Kurume_Dataset/
+　　├ Raw/Kurume_Dataset/svs
+　　└ Dataset/Kurume_Dataset/hirono
+
+決定木データ
+../KurumeTree
+    ├ kurume_tree
+    |   ├ 1st
+    |   |   ├ Simple   
+    |   |   └ Full
+    |   |       ├ tree/                     #決定木の図の保存
+    |   |       ├ ...  
+    |   |       └ unu_depthX/leafs_data     #各深さにおける各葉に分類されたデータセット
+    |   |                                   #MILのデータ読み込みに使う
+    |   ├ 2nd        
+    |   └ 3rd        
+    └ normal_tree
+        └ 同上
 ```
 
 必要なソースコード
@@ -53,10 +69,10 @@ Source/
 　　└ yolo.py               #YOLOAMILのYOLOモデル部分のプログラム
 ```
 
-プログラムの実行順序と依存関係
+プログラムの実行順序と依存関係(run_train.pyで一括実行)
 ```
 Source/
-　　├ train.py
+　　├ 1.train.py
 　　| 　├ utils.py
 　　| 　├ dataset_kurume.py
 　　|　 ├ dataloader_svs.py
@@ -64,7 +80,7 @@ Source/
 　　|　     └ model_yolo.py
 　　|　         └ yolo.py
 　　|　 
-　　├ test.py
+　　├ 2.test.py
 　　| 　├ utils.py
 　　| 　├ dataset_kurume.py
 　　|　 ├ dataloader_svs.py
@@ -72,50 +88,60 @@ Source/
 　　|　     └ model_yolo.py
 　　|　         └ yolo.py　
 　　|　 
-　　├ result_analyse.py
+　　├ 3.result_analyse.py
 　　| 　└ utils.py
 　　|　 
-　　└ draw_heatmap.py
+　　└ 4.draw_heatmap.py
 　　  　└ utils.py
 ```
-  
+
 各プログラムには実行時にパラメータの入力が必要
 run_train.pyで一括実行する際は，train.py,test.pyの*の付いたパラメータに注意
 ```
-train               データの5分割の番号を指定 例：123
+train               データのクロスバリデーションの番号を指定 例：123
 --depth             決定木の深さを指定 例：1
 --leaf              決定木の指定した深さの葉の指定 例：01
 --yolo_ver          学習したyoloの重みを選択(multistageの時はbest固定) 例：1
---data              データ数の選択(基本はadd) 例：add
+--data              データ数の選択 (1st, 2nd, 3rd)
 --mag               拡大率の選択(40x以外はデータセットがないから不可) 例：40x
---model             MILの特徴抽出器の選択 例：vgg16
+--model             MILの特徴抽出器の選択 (vgg16 or vgg11)
 --dropout           (flag)ドロップアウト層の有無
 --multistage        multistageにおける階層数の入力 例:1
 --detect_obj        YOLOAMILにおけるYOLOの特徴ベクトルのサイズ(defaultは3087) 例：50
 *--epoch            epoch数の指定(1epoch 40分目安) 例：10
 *--batch_size       バッチサイズの指定(singlestageは4，multistageは3までいけたはず) 例：3
---name              データセット名の指定(unu_treeの時に有効) 例：Simple
--c, --classify_mode 識別する決定木の種類の選択 例：new_tree
--l, --loss_mode     損失関数の選択 例：ICE
+--name              データセット名の指定(normal_tree,subtypeの時に有効)
+                        * Simple : 例 DLBCL, FL
+                        * Full : 例 DLBCL-GCB, FL-grade1
+-c, --classify_mode 識別する決定木の種類の選択 
+                        * normal_tree : エントロピーによる決定木で識別
+                        * kurume_tree : 免疫染色による決定木で識別
+                        * subtype : サブタイプ名別で識別(5種類)
+-l, --loss_mode     損失関数の選択
+                        * CE : Cross Entropy Loss
+                        * ICE : Inversed Cross Entropy Loss (重み付けCE)
+                        * focal : Focal Loss
+                        * focal-weight : Weighted Focal Loss (重み付けFocal Loss)
+                        * LDAM : LDAM Loss
 --lr                学習率の指定 例：0.00005
 *--weight_decay     weight_decayの指定 例：0.0001
 *--momentum         momentumの指定 例：0.9
--C, --constant      LDAM損失使用時のパラメータ設定(0～0.5くらい) 例：0.2
--g, --gamma         focal損失使用時のパラメータ設定 例：1.0
+-C, --constant      LDAM損失使用時のパラメータ指定(0～0.5くらい) 例：0.2
+-g, --gamma         focal損失使用時のパラメータ指定 例：1.0
 -a, --augmentation  (flag)回転・反転によるaugmentationの有無
 *-r, --restart      (flag)再学習するか否か(上手くできているか不明)
 --fc                (flag)ラベル予測部分のみを学習するか否か
---reduce            (flag)データ数addの時に多すぎるラベルを減らすか否か
+--reduce            (flag)データ数が多い時に多すぎるラベルを減らすか否か
 *--device           使用するGPU番号の選択 例：0,1,2,3
 ```
 *注意1  
 --restartは上手く動かない可能性有  
 model_mil.py,model_yolo.pyでrestart時のパラメータを選択するが，best.ptとckpt.ptのせいで最後のepochのパラメータになってないかもしれない  
-*注意2  
---mil_mode amilはモデルの出力のエラーで上手く動かないかもしれない．
+*注意2
+画像svsファイル名の変更や，パラメータの名前の変更によってエラーが発生する可能性あるかもしれないです  
 
 各プログラムを実行するとパラメータごとにruns/に結果が保存される．
-同一の設定で実験を行った場合，
+同一の設定で実験を行った場合，自動的に番号付けされて別のディレクトリに保存される
 ```
 runs/
 　　└ パラメータ別のディレクトリ1/
@@ -137,3 +163,29 @@ runs/
 　　 　     └ best_exps.txt/        ベストスコアの実験のメモ
 ```
 
+## 未報告次項
+* YOLOの特徴量の制限(自主的な改良)
+    そのままYOLOの特徴量を用いると3087次元であり，対象の細胞核が存在していないときは検出確率0が大半をしめる特徴ベクトルとなる．  
+    一方で，vggによる特徴量は512次元である．  
+    vggの特徴量に対してYOLOの特徴量が多すぎると識別に悪影響がでるかもしれないと思い，YOLOの特徴量を検出確率の上位X個によるX次元の特徴量に削減して実験できるようにした．  
+    結果としては，そこまで精度が変わらなかった(むしろ下がった？)
+
+* YOLOのマルチステージ学習(先生提案の改良)
+    決定木のB細胞性vsMETAの分類ではDLBCLやFLの識別性能が非常に良いが，一つ上の階層での識別(T細胞性vsその他)ではDLBCLやFLなどの分類がいまいち
+    そこで，下位層のYOLOの特徴を用いることができれば，上位層の識別性能が向上すると考えた．
+    結果としては，そこまで精度が変わらなかった(むしろ下がった？)
+
+#### ファイル名の変更の対応関係
+データセットのバージョン
+```
+(修飾無し) → 1st  
+add_ → 2nd  
+New : 3rd  (実験したことのないのでエラーに注意)
+```
+
+決定木の名前
+```
+leaf → normal_tree
+new_tree → kurume_tree
+subtype → subtype
+```
