@@ -66,7 +66,7 @@ def load_leaf(args, rank=0):
         ratio = len(dataset[max_leaf])//len(dataset[min_leaf])
         print(f'{min_leaf}:{len(dataset[min_leaf])},{max_leaf}:{len(dataset[max_leaf])}') if rank==0 else None
         if args.reduce:
-            dataset[max_leaf] = reduce_data(dataset[max_leaf])
+            dataset[max_leaf] = reduce_data(dataset[max_leaf], args)
             min_leaf = np.argmin([len(dataset[0]), len(dataset[1])])
             max_leaf = np.argmax([len(dataset[0]), len(dataset[1])])
             ratio = len(dataset[max_leaf])//len(dataset[min_leaf])
